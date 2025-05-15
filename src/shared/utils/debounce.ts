@@ -1,7 +1,8 @@
-export const debounce = (fn:any, delay:number) => {
-    let timer
-    return function(...args: any[]){
+
+export function debounce <T extends (...args:any[])=> void>(fn:T, delay:number)  {
+    let timer:  any
+    return function(...args: Parameters<T>){
         clearTimeout(timer)
-        return setTimeout(()=>fn(...args),delay);
+        timer = setTimeout(()=>fn(...args),delay);
     }
 }

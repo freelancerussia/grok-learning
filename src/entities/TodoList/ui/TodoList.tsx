@@ -1,19 +1,20 @@
-import {type ChangeEvent, type FC, memo, useCallback, useMemo, useState} from "react";
+import {type ChangeEvent, type FC, useCallback, useMemo, useState} from "react";
 import s from './TodoList.module.scss'
+import {v4} from "uuid";
 
 interface ITask {
-    id: number;
+    id: string;
     text: string;
     completed: boolean
 }
 
 type  IFilterValue = 'all' | 'active' | 'completed'
 
-export const TodoList: FC = memo(() => {
+export const TodoList: FC = () => {
     const [tasks, setTasks] = useState<ITask[]>([
-        {id: 1, text: 'Выучить HTML', completed: true},
-        {id: 2, text: 'Выучить JS', completed: false},
-        {id: 3, text: 'Выучить css', completed: true},
+        {id:'1', text: 'Выучить HTML', completed: true},
+        {id: '2', text: 'Выучить JS', completed: false},
+        {id: '3', text: 'Выучить css', completed: true},
     ])
     const [newTaskText, setNewTaskText] = useState<string>('')
     const [filter, setFilter] = useState<IFilterValue>('all')
@@ -24,21 +25,21 @@ export const TodoList: FC = memo(() => {
             setError('Введите задачу!');
             return;
         }
-        setError(null);
         setTasks((prev) => [
             ...prev,
-            {id: Date.now(), text: newTaskText.trim(), completed: false},
+            {id: v4(), text: newTaskText.trim(), completed: false},
         ]);
         setNewTaskText('');
+        setError(null);
     }, [newTaskText]);
 
-    const toggleTaskCompleted = useCallback((id: number) => {
+    const toggleTaskCompleted = useCallback((id: string) => {
         setTasks(prev => {
             return prev.map(task => task.id === id ? {...task, completed: !task.completed} : task)
         })
     }, [])
 
-    const deleteTask = useCallback((id: number) => {
+    const deleteTask = useCallback((id: string) => {
         setTasks(prev=> prev.filter(task=>task.id !== id))
     }, []);
 
@@ -89,7 +90,7 @@ export const TodoList: FC = memo(() => {
             <option value="completed">Выполненные</option>
         </select>
         <ul className={s.taskList}>
-            {filteredTasks.map((task) => (
+            {filteredTasks.length ? filteredTasks.map((task) => (
                 <li key={task.id} className={s.task}>
                     <input
                         type="checkbox"
@@ -97,6 +98,7 @@ export const TodoList: FC = memo(() => {
                         onChange={() => toggleTaskCompleted(task.id)}
                         className={s.checkbox}
                         id={`task-${task.id}`}
+                        aria-checked={task.completed}
                     />
                     <label
                         htmlFor={`task-${task.id}`}
@@ -112,7 +114,7 @@ export const TodoList: FC = memo(() => {
                         ✕
                     </button>
                 </li>
-            ))}
+            )) : <p>Задач нет</p>}
         </ul>
     </div>
-})
+}

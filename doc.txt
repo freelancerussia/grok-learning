@@ -333,3 +333,433 @@ interface Box<T> {
 const stringBox: Box<string> = { content: 'hello' };
 const numberBox: Box<number> = { content: 42 };
 Вопрос для закрепления: Напиши дженерик-функцию getFirst<T>, которая возвращает первый элемент массива типа T[].
+
+
+
+//------------------------------------ОТВЕТ------------------------------------
+
+Вопрос для закрепления: Как замыкания используются в обработчиках событий? (Попробуй ответить.)
+в обработчиках событий замыкания работаю следующим образом
+так как в созданные обработчики передается функция колбэк соответственно она вызывается в момент выполнения события и данные которые мы определили замыкаются в лексическом окружении. ну и соответственно мы эти данные получаем когда функция отрабаотывает
+Вопрос для закрепления: Что произойдет, если забыть указать зависимость в массиве useEffect? Приведи пример бага.
+если забыть указать зависимость в массиве не будет ререндера когда он нам нужен
+например даже если в задаче TodoList не указать filter в  массив то список задач не будет перерисовываться (если сделать через useEffect)
+Вопрос для закрепления: Напиши дженерик-функцию getFirst<T>, которая возвращает первый элемент массива типа T[].
+function getFirst<T>(arr: T[]): T {
+    return arr[0];
+}
+    console.log(getFirst(['asd']));
+    console.log(getFirst([123]));
+
+обновленный код TodoList.tsx
+import {type ChangeEvent, type FC, memo, useCallback, useMemo, useState} from "react";
+import s from './TodoList.module.scss'
+
+interface ITask {
+    id: number;
+    text: string;
+    completed: boolean
+}
+
+type  IFilterValue = 'all' | 'active' | 'completed'
+
+export const TodoList: FC = memo(() => {
+    const [tasks, setTasks] = useState<ITask[]>([
+        {id: 1, text: 'Выучить HTML', completed: true},
+        {id: 2, text: 'Выучить JS', completed: false},
+        {id: 3, text: 'Выучить css', completed: true},
+    ])
+    const [newTaskText, setNewTaskText] = useState<string>('')
+    const [filter, setFilter] = useState<IFilterValue>('all')
+    const [error, setError] = useState<string | null>(null);
+
+    const addTask = useCallback(() => {
+        if (!newTaskText.trim()) {
+            setError('Введите задачу!');
+            return;
+        }
+        setError(null);
+        setTasks((prev) => [
+            ...prev,
+            {id: Date.now(), text: newTaskText.trim(), completed: false},
+        ]);
+        setNewTaskText('');
+    }, [newTaskText]);
+
+    const toggleTaskCompleted = useCallback((id: number) => {
+        setTasks(prev => {
+            return prev.map(task => task.id === id ? {...task, completed: !task.completed} : task)
+        })
+    }, [])
+
+    const deleteTask = useCallback((id: number) => {
+        setTasks(prev=> prev.filter(task=>task.id !== id))
+    }, []);
+
+    const handleSelectFilter = useCallback((e: ChangeEvent<HTMLSelectElement>) => {
+        setFilter(e.target.value as IFilterValue);
+    }, []);
+
+    const filteredTasks = useMemo(() => {
+        switch (filter) {
+            case 'all':
+                return tasks;
+            case 'completed':
+                return tasks.filter((t) => t.completed);
+            case 'active':
+                return tasks.filter((t) => !t.completed);
+            default:
+                return tasks;
+        }
+    }, [filter, tasks]);
+
+    return <div className={s.container}>
+        <div className={s.taskAddWrapper}>
+            <label htmlFor="task-input" className={s.label}>
+                Новая задача
+            </label>
+            <input
+                id="task-input"
+                className={s.input}
+                type="text"
+                placeholder="Что хотите сделать?"
+                value={newTaskText}
+                onChange={(e) => setNewTaskText(e.target.value)}
+                aria-invalid={!!error}
+            />
+            <button className={s.button} onClick={addTask}>
+                Добавить
+            </button>
+            {error && <p className={s.error}>{error}</p>}
+        </div>
+        <select
+            className={s.filter}
+            onChange={handleSelectFilter}
+            value={filter}
+            aria-label="Фильтр задач"
+        >
+            <option value="all">Все</option>
+            <option value="active">Активные</option>
+            <option value="completed">Выполненные</option>
+        </select>
+        <ul className={s.taskList}>
+            {filteredTasks.map((task) => (
+                <li key={task.id} className={s.task}>
+                    <input
+                        type="checkbox"
+                        checked={task.completed}
+                        onChange={() => toggleTaskCompleted(task.id)}
+                        className={s.checkbox}
+                        id={`task-${task.id}`}
+                    />
+                    <label
+                        htmlFor={`task-${task.id}`}
+                        className={`${s.text} ${task.completed ? s.completed : ''}`}
+                    >
+                        {task.text}
+                    </label>
+                    <button
+                        className={s.deleteButton}
+                        onClick={() => deleteTask(task.id)}
+                        aria-label={`Удалить задачу ${task.text}`}
+                    >
+                        ✕
+                    </button>
+                </li>
+            ))}
+        </ul>
+    </div>
+})
+
+debounce написал вроде
+const debounce = (fn:any, delay:number) => {
+    let timer
+    return function(...args: any[]){
+        clearTimeout(timer)
+        return setTimeout(()=>fn(...args),delay);
+    }
+}
+с типизацией возможно есть проблемы здесь
+
+на теорию ответил выше
+
+новая задача useFetch
+в общем писал я сам поэтому вышло вот что
+import {useState} from "react";
+
+
+export   function useFetch<T>(url: string):{data: T | null, error: string | null, loading:boolean} {
+    const [loading, setLoading] = useState<boolean>(false)
+    const [error, setError] = useState<null | string>(null)
+    const [data, setData] = useState<T | null>(null)
+    setLoading(true)
+
+     fetch(url)
+        .then(res => res.json())
+        .then(setData)
+        .catch(setError)
+        .finally(() => setLoading(false))
+
+    return {
+        data, loading, error
+    }
+}
+но я не знаю работает ли это и верно ли написано + я не понимаю как это использовать в компоненте (вызывать в useEffect или нет), нужен ли async/await и тд
+посмотри это а потом продолжу со следующими заданиями начиная с полифила
+единственное не понял что конкретно нужно сделать здесь
+День 5-6: Построй мини-приложение (например, список постов из API с фильтрами).
+День 7: Разбери 2-3 вопроса для собесов (я дам список).
+жду фидбэк
+
+
+----------------------------------------ИИ--------------------------------------------
+
+
+Недочеты и рекомендации:
+React:
+memo всё еще используется, хотя для компонента без пропсов оно не нужно. memo полезно, когда компонент часто ререндерится из-за изменения пропсов в родителе. Здесь можно убрать.
+В addTask ты используешь setTasks((prev) => [...prev, ...]), что правильно, но setNewTaskText('') идет после setTasks. Это работает, но лучше объединить обновления состояния в один блок для предсказуемости:
+ts
+
+Копировать
+setTasks((prev) => [...prev, { id: Date.now(), text: newTaskText.trim(), completed: false }]);
+setNewTaskText('');
+setError(null);
+SCSS:
+Стили хорошие, но можно добавить визуальные улучшения:
+Hover-эффекты для кнопки "Добавить" и "Удалить".
+Различные стили для чекбокса (например, кастомный вид через appearance: none).
+Анимацию для появления новой задачи (например, opacity или transform).
+Цвет фона #f5f5f5 (из моего примера) можно заменить на более выразительный или добавить градиент.
+Логика:
+Date.now() для id — временное решение. Для продакшена лучше использовать uuid (библиотека uuid или crypto.randomUUID()).
+Нет обработки пустого списка задач (например, <p>Нет задач</p>).
+Доступность:
+У чекбоксов есть id и htmlFor, но можно добавить aria-checked={task.completed} для скринридеров.
+<ul> для задач — правильный выбор, но можно добавить role="list" для явной семантики.
+Предложение:
+Добавь обработку пустого списка: filteredTasks.length === 0 && <p>Нет задач</p>.
+Попробуй кастомизировать чекбоксы через SCSS (например, круглый чекбокс с анимацией).
+Убери memo и протестируй, не изменилась ли производительность.
+Оценка: 9/10. Код почти идеален, осталось чуть доработать стили и мелкие детали.
+
+2. Разбор debounce
+Твой код для debounce:
+
+ts
+
+Копировать
+const debounce = (fn: any, delay: number) => {
+    let timer
+    return function(...args: any[]){
+        clearTimeout(timer)
+        return setTimeout(()=>fn(...args),delay);
+    }
+}
+Что работает:
+Логика верная: ты используешь замыкание для хранения timer, сбрасываешь таймер через clearTimeout и вызываешь fn через setTimeout с задержкой delay.
+Использование ...args позволяет передавать аргументы в fn.
+Ошибки и недочеты:
+Типизация:
+fn: any и args: any[] — это слабая типизация. В TypeScript лучше указывать конкретные типы, чтобы ловить ошибки на этапе компиляции. Например, fn может быть функцией с любыми аргументами и возвращаемым значением, а timer — это NodeJS.Timeout или number.
+Правильная типизация:
+ts
+
+Копировать
+function debounce<T extends (...args: any[]) => void>(fn: T, delay: number) {
+  let timer: NodeJS.Timeout | undefined;
+  return function (...args: Parameters<T>) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+Здесь T — дженерик для функции, Parameters<T> извлекает типы аргументов.
+Возврат setTimeout:
+Ты возвращаешь результат setTimeout из внутренней функции (return setTimeout(...)). Это ошибка, так как setTimeout возвращает ID таймера (NodeJS.Timeout), а не результат fn. Нужно просто вызвать setTimeout без return.
+Правильно:
+ts
+
+Копировать
+setTimeout(() => fn(...args), delay);
+Неинициализированный timer:
+Ты объявляешь let timer без начального значения. TypeScript может ругаться, что timer может быть undefined. Лучше явно указать let timer: NodeJS.Timeout | undefined.
+Исправленный код:
+ts
+
+Копировать
+function debounce<T extends (...args: any[]) => void>(fn: T, delay: number) {
+  let timer: NodeJS.Timeout | undefined;
+
+  return function (...args: Parameters<T>) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+}
+
+// Пример использования
+const log = (text: string) => console.log(text);
+const debouncedLog = debounce(log, 1000);
+debouncedLog('Test'); // Вызывается через 1 секунду
+debouncedLog('Test2'); // Сбрасывает предыдущий вызов
+
+Для практики:
+Протестируй debounce с input-событием:
+ts
+
+Копировать
+const input = document.querySelector('input');
+const debouncedInput = debounce((e: Event) => console.log((e.target as HTMLInputElement).value), 500);
+input?.addEventListener('input', debouncedInput);
+Добавь возможность отмены debounce (например, метод cancel):
+ts
+
+Копировать
+function debounce<T extends (...args: any[]) => void>(fn: T, delay: number) {
+  let timer: NodeJS.Timeout | undefined;
+  const debounced = function (...args: Parameters<T>) {
+    clearTimeout(timer);
+    timer = setTimeout(() => fn(...args), delay);
+  };
+  debounced.cancel = () => clearTimeout(timer);
+  return debounced;
+}
+Оценка: 7/10. Логика верная, но типизация и return setTimeout — ошибки. Попробуй исправить по моему примеру и протестировать.
+
+3. Разбор useFetch
+Твой код для useFetch:
+
+ts
+
+Копировать
+import { useState } from "react";
+
+export function useFetch<T>(url: string): { data: T | null, error: string | null, loading: boolean } {
+    const [loading, setLoading] = useState<boolean>(false)
+    const [error, setError] = useState<null | string>(null)
+    const [data, setData] = useState<T | null>(null)
+    setLoading(true)
+
+    fetch(url)
+        .then(res => res.json())
+        .then(setData)
+        .catch(setError)
+        .finally(() => setLoading(false))
+
+    return {
+        data, loading, error
+    }
+}
+Что работает:
+Ты правильно определил дженерик T для типизации данных.
+Структура возвращаемого объекта { data, loading, error } соответствует заданию.
+Используешь fetch для запроса и обрабатываешь состояния.
+Ошибки и проблемы:
+Неправильное место для fetch:
+Ты вызываешь fetch прямо в теле хука, а не в useEffect. Это значит, что запрос выполняется при каждом рендере компонента, что приведет к бесконечным запросам и багам. Нужно обернуть fetch в useEffect.
+Пример бага: если компонент ререндерится (например, из-за изменения состояния), fetch вызывается заново, даже если данные уже получены.
+Обработка ошибок:
+В .catch(setError) ты передаешь ошибку напрямую, но setError ожидает string | null. Ошибка из fetch — это объект Error, и его нужно преобразовать (например, err.message).
+Ты не проверяешь статус ответа (res.ok). Если сервер вернул 404 или 500, res.json() выполнится, но данные могут быть некорректными.
+Синхронное setLoading(true):
+setLoading(true) вызывается при каждом рендере, что может сбивать состояние. Лучше управлять loading внутри useEffect.
+Отсутствие зависимости URL:
+Если url изменится, хук не выполнит новый запрос, так как useEffect отсутствует. Нужно добавить url в зависимости.
+Async/await:
+Ты используешь .then/.catch, что работает, но async/await может быть читабельнее. Это вопрос вкуса, но я покажу оба варианта.
+Использование в компоненте:
+Ты правильно отметил, что не понимаешь, как использовать хук. Хук вызывается в компоненте, и данные обрабатываются в JSX. Обычно useEffect внутри хука сам управляет запросом, а компонент просто рендерит { data, loading, error }.
+Исправленный код:
+ts
+
+Копировать
+import { useState, useEffect } from 'react';
+
+export function useFetch<T>(url: string): { data: T | null; error: string | null; loading: boolean } {
+  const [data, setData] = useState<T | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const res = await fetch(url);
+        if (!res.ok) {
+          throw new Error(`HTTP error! Status: ${res.status}`);
+        }
+        const result = await res.json();
+        setData(result);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Unknown error');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [url]); // Зависимость от url
+
+  return { data, loading, error };
+}
+
+Для практики:
+Добавь опцию options в хук (например, { method: 'POST', headers: {} }).
+Реализуй отмену запроса с помощью AbortController:
+ts
+
+Копировать
+const controller = new AbortController();
+fetch(url, { signal: controller.signal });
+return () => controller.abort(); // Очистка в useEffect
+Оценка: 6/10. Идея верная, но отсутствие useEffect и слабая обработка ошибок — критичные проблемы. Исправленный вариант готов к продакшену.
+
+Следующие шаги:
+TodoList:
+Добавь обработку пустого списка (<p>Нет задач</p>).
+Попробуй кастомный чекбокс через SCSS.
+Запости обновленный код, если хочешь ф-подробный фидбек.
+Debounce:
+Исправь типизацию и return setTimeout по моему примеру.
+Протестируй с input-событием (пример выше).
+Запости исправленный код.
+useFetch:
+Используй исправленный вариант с useEffect.
+Добавь AbortController для отмены запроса.
+Протестируй в компоненте (пример выше).
+Полифил для Array.map:
+Напиши полифил для Array.prototype.map:
+ts
+
+Копировать
+Array.prototype.myMap = function (callback, thisArg) {
+  // Твой код
+};
+Должен работать как встроенный map: принимает колбэк (element, index, array) => newElement и возвращает новый массив.
+Пример:
+ts
+
+Копировать
+const arr = [1, 2, 3];
+const doubled = arr.myMap((x) => x * 2); // [2, 4, 6]
+Мини-приложение (День 5-6):
+Начни работу над списком постов из API.
+Используй useFetch для загрузки данных.
+Добавь фильтр по заголовку и стили.
+Теория:
+Ответь на новые вопросы:
+Что такое Virtual DOM и как он работает в React?
+Объясни разницу между debounce и throttle.
+Напиши функцию flattenArray для разворачивания массива:
+ts
+
+Копировать
+flattenArray([1, [2, 3], [4, [5]]]) // [1, 2, 3, 4, 5]
+План на неделю:
+День 1-2: Доработай TodoList, исправь debounce, протестируй useFetch.
+День 3-4: Напиши полифил Array.map, начни мини-приложение.
+День 5-6: Заверши мини-приложение (список постов с фильтрами).
+День 7: Ответь на 2-3 вопроса для собесов (выше).
+
+
+---------------------------------------ОТВЕТ-------------------------------------------------
+

@@ -1,0 +1,15 @@
+.post{
+  display: flex;
+  flex-direction: column;
+  width: 300px;
+  background-color: #b8d3ee;
+  border-radius: 10px;
+  padding: 15px 20px ;
+}
+.title{
+  font-size: 20px;
+  font-weight: 700;
+}
+.body{
+  font-size: 17px;
+}
