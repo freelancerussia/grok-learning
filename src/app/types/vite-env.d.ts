@@ -9,3 +9,12 @@ declare global {
         ): U[];
     }
 }
+
+declare global {
+    interface Array<T> {
+        myFilter<T>(
+            callback: (value: T, index: number, array: T[]) => boolean,
+            thisArg?: any
+        ): T[];
+    }
+}
